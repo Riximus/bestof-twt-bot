@@ -47,7 +47,7 @@ def main():
 
     # run through all user that the bot is following
     for user_id in res_user_id.data:
-        print(f"user_id under the for-loop {user_id}")
+        #print(f"user_id under the for-loop {user_id}")
 
         # filter through the users that have the tweets 'protected'
         if not user_id.protected:
@@ -55,7 +55,7 @@ def main():
             # go through all tweets till there is no more next_token's
             while has_next_token:
                 # get all tweets from the last 7 days
-                res_tweets = client.get_users_tweets(user_id.id, end_time=today, exclude="retweets", max_results=5, pagination_token=page_token, start_time=week_ago, tweet_fields=["public_metrics"])
+                res_tweets = client.get_users_tweets(user_id.id, end_time=today, exclude="retweets", max_results=100, pagination_token=page_token, start_time=week_ago, tweet_fields=["public_metrics"])
                 # try as long as there is data
                 try:
                     for tweet in res_tweets.data:
@@ -65,7 +65,7 @@ def main():
                             # if the tokens are not the same save the new one in the variable page_token
                             if page_token != next_token:
                                 page_token = next_token
-                                print(page_token)
+                                #print(page_token)
                         except KeyError:
                             has_next_token = False  # get out of the while loop for the next user
                             page_token = None
@@ -81,7 +81,7 @@ def main():
                         elif tweet_likes > best_tweets[1]:
                             best_tweets.clear()
                             best_tweets = add_to_best_tweet(tweet_id, tweet_likes, best_tweets)
-                        print(f"{tweet.text} ------ {best_tweets[1]}")
+                        #print(f"{tweet.text} ------ {best_tweets[1]}")
                 except TypeError:
                     print(f"Get Users Tweets Response is {res_tweets.data}")
                     break
@@ -89,13 +89,14 @@ def main():
 
     # if there are multiple tweets in the array go to every second index to grab the tweet_id
     for index, tw_id in enumerate(best_tweets[::2]):
-        print(tw_id)
+        #print(tw_id)
         best_tweet = client.get_tweet(best_tweets[index], tweet_fields=["text"])
         print(f"MOST LIKED TWEET!! ---> {best_tweet.data.text}")
         try:
             client.create_tweet(text=f"❤Week {today.strftime('%V')}❤\n Most liked tweet is: \n https://twitter.com/SenshiSuni/status/{tw_id}")
         except tweepy.errors.Forbidden as e:
             print(f"Tweet already exists. Status: {e}")
+        # TODO save the tweet_id and likes in a JSON in this structure: 'Year' -> 'Week' -> 'tweet_id', 'likes'
         time.sleep(5)
     #print(best_tweet.data["username"])
 
