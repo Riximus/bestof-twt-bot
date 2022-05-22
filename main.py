@@ -69,7 +69,7 @@ def main():
                         except KeyError:
                             has_next_token = False  # get out of the while loop for the next user
                             page_token = None
-                            print("Key Error, no next_token")
+                            #print("Key Error, no next_token")
                         # save the id and likes in the variables
                         tweet_id = tweet.id
                         tweet_likes = tweet.public_metrics["like_count"]
@@ -93,7 +93,7 @@ def main():
         best_tweet = client.get_tweet(best_tweets[index], tweet_fields=["text"])
         print(f"MOST LIKED TWEET!! ---> {best_tweet.data.text}")
         try:
-            client.create_tweet(text=f"❤Week {today.strftime('%V')}❤\n Most liked tweet is: \n https://twitter.com/SenshiSuni/status/{tw_id}")
+            client.create_tweet(text=f"❤Week {today.strftime('%V')}❤\n Most liked tweet is: \n https://twitter.com/user/status/{tw_id}")  # TODO maybe change the url that instead of user there is the twitter handle
         except tweepy.errors.Forbidden as e:
             print(f"Tweet already exists. Status: {e}")
         # TODO save the tweet_id and likes in a JSON in this structure: 'Year' -> 'Week' -> 'tweet_id', 'likes'
