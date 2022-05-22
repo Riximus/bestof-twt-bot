@@ -1,2 +1,0 @@
-LIKE = True
-FOLLOW = True
