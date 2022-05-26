@@ -30,13 +30,6 @@ def config():
     return client
 
 
-def add_to_best_tweet(tweet_id, tweet_likes, best_tweet):
-    best_tweet.append(tweet_id)
-    best_tweet.append(tweet_likes)
-
-    return best_tweet
-
-
 def dict_forming(best_tweets: dict, t_id, t_likes) -> dict:
     for _, first_val in best_tweets[1].items():
         for _, second_val in best_tweets[2].items():
@@ -76,6 +69,8 @@ def dict_forming(best_tweets: dict, t_id, t_likes) -> dict:
 def get_best_tweet(best_tweets, client, place, previous_tweet):
     tweet_link = f"https://twitter.com/user/status/"
     place_text = None
+    text_more_ids = ""
+
     match place:
         case 1:
             place_text = "🥇 Most"
@@ -83,17 +78,18 @@ def get_best_tweet(best_tweets, client, place, previous_tweet):
             place_text = "🥈 Second most"
         case 3:
             place_text = "🥉 Third most"
+    text_one_id = f"❤Week {today.strftime('%V')}❤\n {place_text} liked tweet(s) is:"
 
-    text_one_id = f"❤Week {today.strftime('%V')}❤\n {place_text} liked tweet(s) is: \n {tweet_link}"
     for index, twt_id in enumerate(best_tweets[place]):
         # best_tweet = client.get_tweet(best_tweets[place][twt_id], tweet_fields=['text'])
         # print(f"MOST LIKED TWEET!! ---> ")#{best_tweet.data.text}")
         try:
             if len(best_tweets[place]) == 1:
-                return client.create_tweet(text=f"{text_one_id}{twt_id}", in_reply_to_tweet_id=previous_tweet)
-            text_more_ids = f"{text_one_id}{tweet_link}{twt_id} "  # reset this variable string
+                return client.create_tweet(text=f"{text_one_id}\n{tweet_link}{twt_id}", in_reply_to_tweet_id=previous_tweet)
+            text_more_ids += f"\n{tweet_link}{twt_id}\n"  # store multiple links
             if index == len(best_tweets[place]):
-                return client.create_tweet(text=text_more_ids, in_reply_to_tweet_id=previous_tweet)
+                text_one_id += text_more_ids  # add the stored links to the presenting text
+                return client.create_tweet(text=text_one_id, in_reply_to_tweet_id=previous_tweet)
 
         except tweepy.errors.Forbidden as e:
             print(f"Tweet already exists. Status: {e}")
