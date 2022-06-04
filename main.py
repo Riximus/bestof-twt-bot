@@ -9,7 +9,8 @@ bot_id = 1527806388457676802
 today = datetime.datetime.now()
 delta_time = datetime.timedelta(days=7)
 week_ago = today - delta_time
-seperator = ' '
+seperator = '\n'
+
 
 def config():
     load_dotenv()
@@ -30,10 +31,11 @@ def config():
     return client
 
 
+# Placing the ranking
 def dict_forming(best_tweets: dict, t_id, t_likes) -> dict:
-    for _, first_val in best_tweets[1].items():
+    for _, first_val in best_tweets[1].items():  # checks first place last
         for _, second_val in best_tweets[2].items():
-            for _, third_val in best_tweets[3].items():
+            for _, third_val in best_tweets[3].items():  # checks third place first
 
                 if third_val > t_likes:  # if likes are not top 3
                     return best_tweets
@@ -84,11 +86,15 @@ def get_best_tweet(best_tweets, client, place, previous_tweet):
         # best_tweet = client.get_tweet(best_tweets[place][twt_id], tweet_fields=['text'])
         # print(f"MOST LIKED TWEET!! ---> ")#{best_tweet.data.text}")
         try:
-            if len(best_tweets[place]) == 1:
+            is_only_one_tweet = len(best_tweets[place]) == 1
+            if is_only_one_tweet:
                 return client.create_tweet(text=f"{text_one_id}\n{tweet_link}{twt_id}",
                                            in_reply_to_tweet_id=previous_tweet)
-            text_more_ids += f"\n{tweet_link}{twt_id}\n"  # store multiple links
-            if index == len(best_tweets[place]):
+
+            text_more_ids += f"\n{tweet_link}{twt_id}\n"  # store multiple links in one string to print them all out
+
+            is_last_tweet_url = index == len(best_tweets[place])
+            if is_last_tweet_url:
                 text_one_id += text_more_ids  # add the stored links to the presenting text
                 return client.create_tweet(text=text_one_id, in_reply_to_tweet_id=previous_tweet)
 
@@ -104,6 +110,7 @@ def main():
     client = config()
     res_user_id = client.get_users_following(bot_id, user_fields=["protected"])  # get user id and protected bool
 
+    # TODO use my_dict.update({key: value}) and/or my_dict.update({key: {key: value}}) instead of my_dict['key'] = value
     best_tweets = {1: {1: -1},  # ID: Likes
                    2: {1: -1},
                    3: {1: -1}}  # array to collect the most liked tweets
@@ -150,7 +157,6 @@ def main():
                         tweet_likes = tweet.public_metrics["like_count"]
                         tweet_stats['like_count'] += tweet_likes  # sum all likes together
 
-                        # TODO check third, second, first in order
                         best_tweets = dict_forming(best_tweets, tweet_id, tweet_likes)
 
                 except TypeError:
@@ -160,7 +166,7 @@ def main():
 
         # collect for the stats the user that tweeted the most
         for _, tweets in tweet_stats['most_tweeter'].items():
-            if tweets <= user_tweet_count:
+            if tweets <= user_tweet_count:  # checks if the user has more or equal tweets than the current in the dictionary
                 if tweets < user_tweet_count:
                     tweet_stats['most_tweeter'].clear()
                 tweet_stats['most_tweeter'][user_id.id] = user_tweet_count
@@ -170,6 +176,7 @@ def main():
     # tweet the tweets in the order of most liked and add the next place as a response
     previous_tweet = None
     dict_len = len(best_tweets)
+
     # go through all tweets
     for i in range(1, dict_len + 1):
         created_tweet = get_best_tweet(best_tweets, client, i, previous_tweet)  # The account tweets the best tweets
@@ -187,6 +194,7 @@ def main():
         username_tweet[user_data['username']] = t_count  # new dictionary to loop for the tweet text in the f-string
 
     # user_data = [client.get_user(id=key).data for key in most_tweeter]
+    # STATS OUTPUT
     client.create_tweet(text=f"📊 Some Stats 📊\n"
                              f"---------------------\n"
                              f"👥Users: {tweet_stats['following']}\n"
