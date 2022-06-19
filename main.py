@@ -93,7 +93,7 @@ def get_best_tweet(best_tweets, client, place, previous_tweet):
 
             text_more_ids += f"\n{tweet_link}{twt_id}\n"  # store multiple links in one string to print them all out
 
-            is_last_tweet_url = index == len(best_tweets[place])
+            is_last_tweet_url = (index+1) == len(best_tweets[place])
             if is_last_tweet_url:
                 text_one_id += text_more_ids  # add the stored links to the presenting text
                 return client.create_tweet(text=text_one_id, in_reply_to_tweet_id=previous_tweet)
@@ -178,9 +178,11 @@ def main():
     dict_len = len(best_tweets)
 
     # go through all tweets
+    print(best_tweets)
     for i in range(1, dict_len + 1):
         created_tweet = get_best_tweet(best_tweets, client, i, previous_tweet)  # The account tweets the best tweets
         print(created_tweet)  # Debugging
+        print(created_tweet.data)
         created_tweet_res = created_tweet.data
         previous_tweet = created_tweet_res["id"]  # get the id from the created tweet to use it to respond to
         print(f"Previous ID: {previous_tweet}")
