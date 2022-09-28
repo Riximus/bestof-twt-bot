@@ -6,15 +6,15 @@ import time
 
 bot_id = 1527806388457676802
 
-# Name for log file
-date = datetime.date.today()
-logfile = f'logs/{date}.txt'
-
 # Date for tweets time period
 today = datetime.datetime.now()
 delta_time = datetime.timedelta(days=7)
 week_ago = today - delta_time
 seperator = '\n'
+
+# Name for log file
+date = datetime.date.today()
+logfile = f'logs/{date}_W{today.strftime("%V")}.txt'
 
 # Log Titles
 title_log1 = ["FOLLOWING", "-----------------"]
@@ -112,6 +112,10 @@ def get_best_tweet(best_tweets, client, place, previous_tweet):
 
         except tweepy.errors.Forbidden as e:
             print(f"Tweet already exists. Status: {e}")
+            with open(logfile, 'a') as f:
+                f.write(f'Tweet already exists.\n'
+                        f'Status:\n'
+                        f'{e}')
             # TODO save the tweet_id and likes in a JSON in this structure: 'Year' -> 'Week' -> 'tweet_id', 'likes'
         time.sleep(5)
     return None
