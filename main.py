@@ -6,10 +6,22 @@ import time
 
 bot_id = 1527806388457676802
 
+# Name for log file
+date = datetime.date.today()
+logfile = f'logs/{date}.txt'
+
+# Date for tweets time period
 today = datetime.datetime.now()
 delta_time = datetime.timedelta(days=7)
 week_ago = today - delta_time
 seperator = '\n'
+
+# Log Titles
+title_log1 = ["FOLLOWING", "-----------------"]
+title_log2 = ["\n", "USERS FOR LOOP", "-----------------"]
+title_log3 = ["\n", "BEST TWEETS DICTIONARY", "-------------------"]
+title_log4 = ["\n", "BEST TWEETS DATA", "-------------------"]
+title_log5 = ["\n", "STATISTICS", "-------------------"]
 
 
 def config():
@@ -93,7 +105,7 @@ def get_best_tweet(best_tweets, client, place, previous_tweet):
 
             text_more_ids += f"\n{tweet_link}{twt_id}\n"  # store multiple links in one string to print them all out
 
-            is_last_tweet_url = (index+1) == len(best_tweets[place])
+            is_last_tweet_url = (index + 1) == len(best_tweets[place])
             if is_last_tweet_url:
                 text_one_id += text_more_ids  # add the stored links to the presenting text
                 return client.create_tweet(text=text_one_id, in_reply_to_tweet_id=previous_tweet)
@@ -108,7 +120,6 @@ def get_best_tweet(best_tweets, client, place, previous_tweet):
 # # # --- MAIN --- # # #
 def main():
     client = config()
-    res_user_id = client.get_users_following(bot_id, user_fields=["protected"])  # get user id and protected bool
 
     # TODO use my_dict.update({key: value}) and/or my_dict.update({key: {key: value}}) instead of my_dict['key'] = value
     best_tweets = {1: {1: -1},  # ID: Likes
@@ -122,6 +133,20 @@ def main():
     page_token = None  # variable to save next_token
     has_next_token = True  # variable to check if next_token exists
     user_tweet_count = 0
+
+    # collect users that the bot follows
+    res_user_id = client.get_users_following(bot_id, max_results=1000,
+                                             user_fields=["protected"])  # get user id and protected bool
+
+    # LOGGING
+    with open(logfile, 'a') as f:
+        f.writelines('%s\n' % log for log in title_log1)
+        for index, user_id in enumerate(res_user_id.data):
+            if user_id.protected:
+                f.write(f'{index+1} {user_id} < PROTECTED >\n')
+            else:
+                f.write(f'{index+1} {user_id}\n')
+        f.writelines('%s\n' % a for a in title_log2)
 
     # run through all user that the bot is following
     for user_id in res_user_id.data:
@@ -151,7 +176,7 @@ def main():
                         except KeyError:
                             has_next_token = False  # get out of the while loop for the next user
                             page_token = None
-                            # print("Key Error, no next_token")
+
                         # save the id and likes in the variables
                         tweet_id = tweet.id
                         tweet_likes = tweet.public_metrics["like_count"]
@@ -160,9 +185,13 @@ def main():
                         best_tweets = dict_forming(best_tweets, tweet_id, tweet_likes)
 
                 except TypeError:
+                    # Data will be None because they didn't tweet
                     print(f"Get Users Tweets Response is {res_tweets.data}")
                     break
             has_next_token = True  # reset boolean to let the next user enter the while-loop
+
+        with open(logfile, 'a') as f:
+            f.write(f'User: {user_id} Tweets: {user_tweet_count}')
 
         # collect for the stats the user that tweeted the most
         for _, tweets in tweet_stats['most_tweeter'].items():
@@ -179,13 +208,28 @@ def main():
 
     # go through all tweets
     print(best_tweets)
+    # LOGGING
+    with open(logfile, 'a') as f:
+        f.writelines('%s\n' % a for a in title_log3)
+        f.write(f'{str(best_tweets)}')
+        f.writelines('%s\n' % a for a in title_log4)
+
     for i in range(1, dict_len + 1):
         created_tweet = get_best_tweet(best_tweets, client, i, previous_tweet)  # The account tweets the best tweets
         print(created_tweet)  # Debugging
         print(created_tweet.data)
         created_tweet_res = created_tweet.data
         previous_tweet = created_tweet_res["id"]  # get the id from the created tweet to use it to respond to
+        if i == 1:
+            # LOGGING
+            with open(logfile, 'a') as f:
+                f.write(f"BOT TWEET LINK"
+                        f"\nhttps://twitter.com/user/status/{previous_tweet}\n")
         print(f"Previous ID: {previous_tweet}")
+        # LOGGING
+        with open(logfile, 'a') as f:
+            f.write(str(created_tweet.data))
+            f.write(str(created_tweet.errors))
 
     most_tweeter = tweet_stats['most_tweeter']  # store the most tweeters
     username_tweet = {}
@@ -206,6 +250,15 @@ def main():
                              f"✍️Tweeted the most\n"
                              f"{seperator.join(f'@{key} -> {value}' for key, value in username_tweet.items())}",
                         in_reply_to_tweet_id=previous_tweet)
+    # LOGGING
+    with open(logfile, 'a') as f:
+        f.writelines('%s\n' % a for a in title_log5)
+        f.write(f"Users: {tweet_stats['following']}\n"
+                f"Tweets: {tweet_stats['tweet_count']}\n"
+                f"Likes: {tweet_stats['like_count']}\n"
+                f"Ø-Like: {int(tweet_stats['like_count'] / tweet_stats['tweet_count'])}\n"
+                f"Tweeted the most\n"
+                f"{seperator.join(f'@{key} -> {value}' for key, value in username_tweet.items())}")
 
 
 if __name__ == '__main__':
