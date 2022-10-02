@@ -1,8 +1,12 @@
+# Libraries
 import tweepy
 import os
 from dotenv import load_dotenv
 import datetime
 import time
+
+# Files
+from database.most_liked_tweets import add_posted_tweets
 
 bot_id = 1527806388457676802
 
@@ -13,8 +17,9 @@ week_ago = today - delta_time
 seperator = '\n'
 
 # Name for log file
+week = today.strftime("%V")
 date = datetime.date.today()
-logfile = f'logs/{date}_W{today.strftime("%V")}.txt'
+logfile = f'logs/{date}_W{week}.txt'
 
 # Log Titles
 title_log1 = ["FOLLOWING", "-----------------"]
@@ -92,7 +97,7 @@ def get_best_tweet(best_tweets, client, place, previous_tweet):
             place_text = "🥈 Second most"
         case 3:
             place_text = "🥉 Third most"
-    text_one_id = f"❤Week {today.strftime('%V')}❤\n {place_text} liked tweet(s) is:"
+    text_one_id = f"❤Week {week}❤\n {place_text} liked tweet(s) is:"
 
     for index, twt_id in enumerate(best_tweets[place]):
         # best_tweet = client.get_tweet(best_tweets[place][twt_id], tweet_fields=['text'])
@@ -112,11 +117,11 @@ def get_best_tweet(best_tweets, client, place, previous_tweet):
 
         except tweepy.errors.Forbidden as e:
             print(f"Tweet already exists. Status: {e}")
+            # LOGGING
             with open(logfile, 'a') as f:
                 f.write(f'Tweet already exists.\n'
                         f'Status:\n'
                         f'{e}')
-            # TODO save the tweet_id and likes in a JSON in this structure: 'Year' -> 'Week' -> 'tweet_id', 'likes'
         time.sleep(5)
     return None
 
@@ -125,7 +130,6 @@ def get_best_tweet(best_tweets, client, place, previous_tweet):
 def main():
     client = config()
 
-    # TODO use my_dict.update({key: value}) and/or my_dict.update({key: {key: value}}) instead of my_dict['key'] = value
     best_tweets = {1: {1: -1},  # ID: Likes
                    2: {1: -1},
                    3: {1: -1}}  # array to collect the most liked tweets
@@ -147,9 +151,9 @@ def main():
         f.writelines('%s\n' % log for log in title_log1)
         for index, user_id in enumerate(res_user_id.data):
             if user_id.protected:
-                f.write(f'{index+1} {user_id} < PROTECTED >\n')
+                f.write(f'{index + 1} {user_id} < PROTECTED >\n')
             else:
-                f.write(f'{index+1} {user_id}\n')
+                f.write(f'{index + 1} {user_id}\n')
         f.writelines('%s\n' % a for a in title_log2)
 
     # run through all user that the bot is following
@@ -218,13 +222,13 @@ def main():
         f.write(f'{str(best_tweets)}')
         f.writelines('%s\n' % a for a in title_log4)
 
-    for i in range(1, dict_len + 1):
-        created_tweet = get_best_tweet(best_tweets, client, i, previous_tweet)  # The account tweets the best tweets
+    for place in range(1, dict_len + 1):
+        created_tweet = get_best_tweet(best_tweets, client, place, previous_tweet)  # The account tweets the best tweets
         print(created_tweet)  # Debugging
         print(created_tweet.data)
         created_tweet_res = created_tweet.data
         previous_tweet = created_tweet_res["id"]  # get the id from the created tweet to use it to respond to
-        if i == 1:
+        if place == 1:
             # LOGGING
             with open(logfile, 'a') as f:
                 f.write(f"BOT TWEET LINK"
@@ -263,6 +267,9 @@ def main():
                 f"Ø-Like: {int(tweet_stats['like_count'] / tweet_stats['tweet_count'])}\n"
                 f"Tweeted the most\n"
                 f"{seperator.join(f'@{key} -> {value}' for key, value in username_tweet.items())}")
+
+    # Add to database
+    # add_posted_tweets(best_tweets, tweet_stats)
 
 
 if __name__ == '__main__':
