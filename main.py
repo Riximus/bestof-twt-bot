@@ -4,6 +4,7 @@ import os
 from dotenv import load_dotenv
 import datetime
 import time
+import pprint
 
 # Files
 from database.most_liked_tweets import add_posted_tweets
@@ -36,8 +37,8 @@ def config():
     BEARER_TOKEN = os.getenv("BEARER_TOKEN")
     ACCESS_TOKEN = os.getenv("ACCESS_TOKEN")
     ACCESS_TOKEN_SECRET = os.getenv("ACCESS_TOKEN_SECRET")
-    CONSUMER_KEY = os.getenv("CONSUMER_KEY")
-    CONSUMER_SECRET = os.getenv("CONSUMER_SECRET")
+    # CONSUMER_KEY = os.getenv("CONSUMER_KEY")
+    # CONSUMER_SECRET = os.getenv("CONSUMER_SECRET")
 
     client = tweepy.Client(bearer_token=BEARER_TOKEN,
                            consumer_key=API_KEY,
@@ -49,10 +50,10 @@ def config():
 
 
 # Placing the ranking
-def dict_forming(best_tweets: dict, t_id, t_likes) -> dict:
-    for _, first_val in best_tweets[1].items():  # checks first place last
-        for _, second_val in best_tweets[2].items():
-            for _, third_val in best_tweets[3].items():  # checks third place first
+def dict_forming(best_tweets: dict, user_id, t_id, t_likes) -> dict:
+    for first_key, first_val in best_tweets[1]['tweets'].items():  # checks first place last
+        for second_key, second_val in best_tweets[2]['tweets'].items():
+            for third_key, third_val in best_tweets[3]['tweets'].items():  # checks third place first
 
                 if third_val > t_likes:  # if likes are not top 3
                     return best_tweets
@@ -64,22 +65,50 @@ def dict_forming(best_tweets: dict, t_id, t_likes) -> dict:
                         # FIRST PLACE
                         if first_val <= t_likes:
                             if first_val < t_likes:
-                                best_tweets[1].clear()
-                            best_tweets[1][t_id] = t_likes
+                                # before it gets placed in first place move the other ranks down
+                                best_tweets[3]['user_ids'].clear()
+                                best_tweets[3]['tweets'].clear()
+                                for i in best_tweets[2]['user_ids']:
+                                    best_tweets[3]['user_ids'].append(i)
+                                best_tweets[3]['tweets'] = {second_key: second_val}
+
+                                best_tweets[2]['user_ids'].clear()
+                                best_tweets[2]['tweets'].clear()
+                                for i in best_tweets[1]['user_ids']:
+                                    best_tweets[2]['user_ids'].append(i)
+                                best_tweets[2]['tweets'] = {first_key: first_val}
+
+                                best_tweets[1]['user_ids'].clear()
+                                best_tweets[1]['tweets'].clear()
+                            best_tweets[1]['user_ids'].append(user_id)
+                            best_tweets[1]['tweets'][t_id] = t_likes
                         elif first_val > t_likes:
-                            best_tweets[2].clear()
-                            best_tweets[2][t_id] = t_likes
+                            # before it gets placed in second place move the other rank down
+                            best_tweets[3]['user_ids'].clear()
+                            best_tweets[3]['tweets'].clear()
+                            for i in best_tweets[2]['user_ids']:
+                                best_tweets[3]['user_ids'].append(i)
+                            best_tweets[3]['tweets'] = {second_key: second_val}
+
+                            best_tweets[2]['user_ids'].clear()
+                            best_tweets[2]['tweets'].clear()
+                            best_tweets[2]['user_ids'].append(user_id)
+                            best_tweets[2]['tweets'][t_id] = t_likes
                         return best_tweets
 
                     elif second_val == t_likes:
-                        best_tweets[2][t_id] = t_likes
+                        best_tweets[2]['user_ids'].append(user_id)
+                        best_tweets[2]['tweets'][t_id] = t_likes
                     else:
-                        best_tweets[3].clear()
-                        best_tweets[3][t_id] = t_likes
+                        best_tweets[3]['user_ids'].clear()
+                        best_tweets[3]['tweets'].clear()
+                        best_tweets[3]['user_ids'].append(user_id)
+                        best_tweets[3]['tweets'][t_id] = t_likes
                     return best_tweets
 
                 elif third_val == t_likes:
-                    best_tweets[3][t_id] = t_likes
+                    best_tweets[3]['user_ids'].append(user_id)
+                    best_tweets[3]['tweets'][t_id] = t_likes
                 return best_tweets
 
     return best_tweets
@@ -99,18 +128,18 @@ def get_best_tweet(best_tweets, client, place, previous_tweet):
             place_text = "🥉 Third most"
     text_one_id = f"❤Week {week}❤\n {place_text} liked tweet(s) is:"
 
-    for index, twt_id in enumerate(best_tweets[place]):
+    for index, twt_id in enumerate(best_tweets[place]['tweets']):
         # best_tweet = client.get_tweet(best_tweets[place][twt_id], tweet_fields=['text'])
         # print(f"MOST LIKED TWEET!! ---> ")#{best_tweet.data.text}")
         try:
-            is_only_one_tweet = len(best_tweets[place]) == 1
+            is_only_one_tweet = len(best_tweets[place]['tweets']) == 1
             if is_only_one_tweet:
                 return client.create_tweet(text=f"{text_one_id}\n{tweet_link}{twt_id}",
                                            in_reply_to_tweet_id=previous_tweet)
 
             text_more_ids += f"\n{tweet_link}{twt_id}\n"  # store multiple links in one string to print them all out
 
-            is_last_tweet_url = (index + 1) == len(best_tweets[place])
+            is_last_tweet_url = (index + 1) == len(best_tweets[place]['tweets'])
             if is_last_tweet_url:
                 text_one_id += text_more_ids  # add the stored links to the presenting text
                 return client.create_tweet(text=text_one_id, in_reply_to_tweet_id=previous_tweet)
@@ -130,9 +159,18 @@ def get_best_tweet(best_tweets, client, place, previous_tweet):
 def main():
     client = config()
 
-    best_tweets = {1: {1: -1},  # ID: Likes
-                   2: {1: -1},
-                   3: {1: -1}}  # array to collect the most liked tweets
+    best_tweets = {
+        1: {
+            'user_ids': [],
+            'tweets': {1: -1}},  # ID: Likes
+        2: {
+            'user_ids': [],
+            'tweets': {1: -1}},
+        3: {
+            'user_ids': [],
+            'tweets': {1: -1}},
+    }
+
     tweet_stats = {'following': 0,
                    'tweet_count': 0,
                    'like_count': 0,
@@ -190,7 +228,10 @@ def main():
                         tweet_likes = tweet.public_metrics["like_count"]
                         tweet_stats['like_count'] += tweet_likes  # sum all likes together
 
-                        best_tweets = dict_forming(best_tweets, tweet_id, tweet_likes)
+                        best_tweets = dict_forming(best_tweets, user_id.id, tweet_id, tweet_likes)
+                        # LOGGING (goes through all users and not recommended. Only for debugging)
+                        # with open(logfile, 'a') as f:
+                        #    f.write(f'\n{str(best_tweets)}\n')
 
                 except TypeError:
                     # Data will be None because they didn't tweet
@@ -199,7 +240,7 @@ def main():
             has_next_token = True  # reset boolean to let the next user enter the while-loop
 
         with open(logfile, 'a') as f:
-            f.write(f'User: {user_id} Tweets: {user_tweet_count}')
+            f.write(f'User: {user_id} Tweets: {user_tweet_count}\n')
 
         # collect for the stats the user that tweeted the most
         for _, tweets in tweet_stats['most_tweeter'].items():
@@ -210,18 +251,19 @@ def main():
             user_tweet_count = 0
             break
 
-    # tweet the tweets in the order of most liked and add the next place as a response
-    previous_tweet = None
-    dict_len = len(best_tweets)
-
     # go through all tweets
     print(best_tweets)
     # LOGGING
     with open(logfile, 'a') as f:
         f.writelines('%s\n' % a for a in title_log3)
-        f.write(f'{str(best_tweets)}')
+        f.write(pprint.pformat(best_tweets))
         f.writelines('%s\n' % a for a in title_log4)
 
+    # tweet the tweets in the order of most liked and add the next place as a response
+    previous_tweet = None
+    dict_len = len(best_tweets)
+
+    # # # CREATING THE RANK TWEETS # # #
     for place in range(1, dict_len + 1):
         created_tweet = get_best_tweet(best_tweets, client, place, previous_tweet)  # The account tweets the best tweets
         print(created_tweet)  # Debugging
@@ -235,10 +277,11 @@ def main():
                         f"\nhttps://twitter.com/user/status/{previous_tweet}\n")
         print(f"Previous ID: {previous_tweet}")
         # LOGGING
-        with open(logfile, 'a') as f:
-            f.write(str(created_tweet.data))
-            f.write(str(created_tweet.errors))
-
+        # This log has an error and cant print
+        # with open(logfile, 'a') as f:
+        #    f.write(str(created_tweet.data))
+        #    f.write(str(created_tweet.errors))
+    # # # # # #
     most_tweeter = tweet_stats['most_tweeter']  # store the most tweeters
     username_tweet = {}
 
@@ -248,7 +291,7 @@ def main():
         username_tweet[user_data['username']] = t_count  # new dictionary to loop for the tweet text in the f-string
 
     # user_data = [client.get_user(id=key).data for key in most_tweeter]
-    # STATS OUTPUT
+    # # # STATS OUTPUT # # #
     client.create_tweet(text=f"📊 Some Stats 📊\n"
                              f"---------------------\n"
                              f"👥Users: {tweet_stats['following']}\n"
@@ -258,6 +301,7 @@ def main():
                              f"✍️Tweeted the most\n"
                              f"{seperator.join(f'@{key} -> {value}' for key, value in username_tweet.items())}",
                         in_reply_to_tweet_id=previous_tweet)
+    # # # # # #
     # LOGGING
     with open(logfile, 'a') as f:
         f.writelines('%s\n' % a for a in title_log5)
@@ -269,7 +313,7 @@ def main():
                 f"{seperator.join(f'@{key} -> {value}' for key, value in username_tweet.items())}")
 
     # Add to database
-    # add_posted_tweets(best_tweets, tweet_stats)
+    add_posted_tweets(best_tweets, tweet_stats)
 
 
 if __name__ == '__main__':
