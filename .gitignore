@@ -130,6 +130,3 @@ dmypy.json
 
 # Logs
 logs/*
-
-# Database
-database/*
