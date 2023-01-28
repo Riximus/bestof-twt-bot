@@ -1,6 +1,6 @@
 import pprint
 from pymongo import MongoClient
-from pymongo.errors import ConnectionFailure
+from pymongo.errors import ConnectionFailure, OperationFailure
 import datetime
 import os
 from dotenv import load_dotenv
@@ -53,22 +53,34 @@ def _db_config():
     CONNECTION_URL = f'mongodb://{MONGOUSER}:{MONGOPASSWORD}@{MONGOHOST}:{MONGOPORT}'
 
     client = MongoClient(CONNECTION_URL)
-    try:
-        client.admin.command('ismaster')
-    except ConnectionFailure:
-        print("Server not available")
-        with open(logfile, 'a') as f:
+    with open(logfile, 'a') as f:
+        try:
+            client.admin.command('ismaster')
+        except ConnectionFailure:
             f.write("DATABASE\n"
                     "-----------\n"
                     "Connection Failure\n")
-        return None
-    else:
-        print("Connection successful")
-        with open(logfile, 'a') as f:
+            return None
+        except OperationFailure as e:
+            if "Authentication failed" in str(e):
+                f.write("DATABASE\n"
+                        "-----------\n"
+                        "Invalid Credentials\n")
+            else:
+                f.write("DATABASE\n"
+                        "-----------\n"
+                        "Connection Failure\n")
+            return None
+        except Exception as e:
+            f.write("DATABASE\n"
+                    "-----------\n"
+                    f"Error connecting to MongoDB: {e}")
+            return None
+        else:
             f.write("DATABASE\n"
                     "-----------\n"
                     "Connection Successful\n")
-        return client
+            return client
 
 
 def add_posted_tweets(best_tweets: dict, tweet_stats: dict):
@@ -137,12 +149,13 @@ def add_posted_tweets(best_tweets: dict, tweet_stats: dict):
     # create a new collection with adjusted dictionary
     try:
         col_id = col_posted_tweets.insert_one(posted_tweets_dict)
-    except:
+    except Exception as e:
         with open(logfile, 'a') as f:
             f.write(f"\nERROR INSERTING ONE\n"
                     f"-------------------------\n")
-            # f"{e}")
+            f.write(f"{e}")
     else:
         with open(logfile, 'a') as f:
             f.write("\nINSERT SUCCESSFUL\n")
             f.write(pprint.pformat(col_id.inserted_id))
+
