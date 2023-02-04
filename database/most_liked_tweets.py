@@ -31,10 +31,10 @@ posted_tweets_template = {
         "likes": []
     },
     "stats": {
-        "users_total": "",
-        "tweets_total": "",
-        "likes_total": "",
-        "likes_avg": "",
+        "users_total": int,
+        "tweets_total": int,
+        "likes_total": int,
+        "likes_avg": int,
         "tweeted_most": {
             "user_id": [],
             "tweets_count": []
@@ -46,11 +46,11 @@ posted_tweets_template = {
 # Database Connection
 def _db_config():
     load_dotenv()
-    MONGOUSER = os.getenv("MONGOUSER")
-    MONGOPASSWORD = os.getenv("MONGOPASSWORD")
-    MONGOHOST = os.getenv("MONGOHOST")
-    MONGOPORT = os.getenv("MONGOPORT")
-    CONNECTION_URL = f'mongodb://{MONGOUSER}:{MONGOPASSWORD}@{MONGOHOST}:{MONGOPORT}'
+    MONGO_USER = os.getenv("MONGO_USER")
+    MONGO_PASSWORD = os.getenv("MONGO_PASSWORD")
+    MONGO_HOST = os.getenv("MONGO_HOST")
+    MONGO_PORT = os.getenv("MONGO_PORT")
+    CONNECTION_URL = f'mongodb://{MONGO_USER}:{MONGO_PASSWORD}@{MONGO_HOST}:{MONGO_PORT}'
 
     client = MongoClient(CONNECTION_URL)
     with open(logfile, 'a') as f:
@@ -105,7 +105,7 @@ def add_posted_tweets(best_tweets: dict, tweet_stats: dict):
                 # key -> tweet id, value -> tweet likes
                 for key, value in best_tweets[rank]["tweets"].items():
                     key = str(key)
-                    value = str(value)
+                    value = value
                     posted_tweets_dict["gold"]["tweet_ids"].append(key)
                     posted_tweets_dict["gold"]["likes"].append(value)
             case 2:
@@ -115,7 +115,7 @@ def add_posted_tweets(best_tweets: dict, tweet_stats: dict):
                 # key -> tweet id, value -> tweet likes
                 for key, value in best_tweets[rank]["tweets"].items():
                     key = str(key)
-                    value = str(value)
+                    value = value
                     posted_tweets_dict["silver"]["tweet_ids"].append(key)
                     posted_tweets_dict["silver"]["likes"].append(value)
             case 3:
@@ -125,18 +125,18 @@ def add_posted_tweets(best_tweets: dict, tweet_stats: dict):
                 # key -> tweet id, value -> tweet likes
                 for key, value in best_tweets[rank]["tweets"].items():
                     key = str(key)
-                    value = str(value)
+                    value = value
                     posted_tweets_dict["bronze"]["tweet_ids"].append(key)
                     posted_tweets_dict["bronze"]["likes"].append(value)
 
     # add tweet stats into the dictionary for the database
-    posted_tweets_dict["stats"]["users_total"] = str(tweet_stats["following"])
-    posted_tweets_dict["stats"]["tweets_total"] = str(tweet_stats["tweet_count"])
-    posted_tweets_dict["stats"]["likes_total"] = str(tweet_stats["like_count"])
-    posted_tweets_dict["stats"]["likes_avg"] = str(int(tweet_stats["like_count"] / tweet_stats["tweet_count"]))
+    posted_tweets_dict["stats"]["users_total"] = tweet_stats["following"]
+    posted_tweets_dict["stats"]["tweets_total"] = tweet_stats["tweet_count"]
+    posted_tweets_dict["stats"]["likes_total"] = tweet_stats["like_count"]
+    posted_tweets_dict["stats"]["likes_avg"] = tweet_stats["like_count"] / tweet_stats["tweet_count"]
     for key, value in tweet_stats["most_tweeter"].items():
         key = str(key)
-        value = str(value)
+        value = value
         posted_tweets_dict["stats"]["tweeted_most"]["user_id"].append(key)
         posted_tweets_dict["stats"]["tweeted_most"]["tweets_count"].append(value)
 

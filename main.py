@@ -30,6 +30,9 @@ title_log4 = ["\n", "BEST TWEETS DATA", "-------------------"]
 title_log5 = ["\n", "STATISTICS", "-------------------"]
 
 
+# TODO change the API Key calling with os.environ.get("KEY") and handle the KeyError Exception
+# TODO also find a way how to save the log files somewhere after the github action took place.
+#  Ask ChatGPT how to create logfiles to be saved somewhere in actions.yml
 def config():
     load_dotenv()
     API_KEY = os.getenv("API_KEY")
