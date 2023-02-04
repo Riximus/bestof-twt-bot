@@ -133,3 +133,6 @@ dmypy.json
 
 # Logs
 logs/*
+
+# ignore actions
+.github/workflows
